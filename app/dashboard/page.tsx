@@ -5,13 +5,18 @@ import AuthenticateType from "../types/AuthenticateType";
 import { useRouter } from "next/navigation";
 import GoogleAccountType from "../types/GoogleAccountType";
 import AuthenticateUser from "../utils/AuthenticateUser";
+import fetchOneUser from "../apis/users/fetchOneUser";
 import BackendUrl from "../utils/BackendUrlBuilder";
+import UserType from "../types/UserType";
+import { FetchOneUserResponseType } from "../types/FetchUserResponseType";
 
 export default function Dashboard() {
 	const [isAuthenticated, setIsAuthenticated] = useState<Boolean | null>(null);
 	const [accountData, setAccountData] = useState<GoogleAccountType | null>(
 		null
 	);
+	const [userData, setUserData] = useState<UserType | null>(null);
+
 	const router = useRouter();
 
 	const logoutButtonHandler = async (): Promise<AuthenticateType | null> => {
@@ -22,7 +27,7 @@ export default function Dashboard() {
 			});
 
 			if (!response.ok) {
-				throw new Error(`HTTP error! Status: ${response.status}`);
+				throw new Error(`Logout error! Status: ${response.status}`);
 			}
 
 			const result: AuthenticateType = await response.json();
@@ -52,6 +57,25 @@ export default function Dashboard() {
 
 		checkAuth();
 	}, []);
+
+	useEffect(() => {
+		const getOneUser = async () => {
+			if (!accountData) return;
+
+			console.log(accountData);
+
+			const result: FetchOneUserResponseType | null = await fetchOneUser(
+				accountData?.user_id
+			);
+
+			if (result && result.status === 200) {
+				setUserData(result.userData);
+				console.log(userData);
+			}
+		};
+
+		getOneUser();
+	}, [accountData]);
 
 	useEffect(() => {
 		if (isAuthenticated === false) {

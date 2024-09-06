@@ -9,14 +9,14 @@ const AuthenticateUser = async (): Promise<AuthenticateType | null> => {
 		});
 
 		if (!response.ok) {
-			throw new Error(`HTTP error! Status: ${response.status}`);
+			throw new Error(`Authentication Error! Status: ${response.status}`);
 		}
 
 		const result: AuthenticateType = await response.json();
 
 		return result;
 	} catch (error) {
-		console.error("There was an error with the authentication:", error);
+		console.error("There is an error with the authentication:", error);
 
 		return null;
 	}
