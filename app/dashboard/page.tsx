@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import AuthenticateType from "../types/AuthenticateType";
 import { useRouter } from "next/navigation";
 import GoogleAccountType from "../types/GoogleAccountType";
-import AuthenticateUser from "../utils/AuthenticateUser";
+import AuthenticateUser from "../apis/auth/AuthenticateUser";
 import fetchOneUser from "../apis/users/fetchOneUser";
 import BackendUrl from "../utils/BackendUrlBuilder";
 import UserType from "../types/UserType";
 import { FetchOneUserResponseType } from "../types/FetchUserResponseType";
+import CreateLoanProduct from "./create-loan-product/CreateLoanProduct";
 
 export default function Dashboard() {
 	const [isAuthenticated, setIsAuthenticated] = useState<Boolean | null>(null);
@@ -62,15 +63,12 @@ export default function Dashboard() {
 		const getOneUser = async () => {
 			if (!accountData) return;
 
-			console.log(accountData);
-
 			const result: FetchOneUserResponseType | null = await fetchOneUser(
 				accountData?.user_id
 			);
 
 			if (result && result.status === 200) {
 				setUserData(result.userData);
-				console.log(userData);
 			}
 		};
 
@@ -96,7 +94,11 @@ export default function Dashboard() {
 				</div>
 				<div className="p-4">
 					<p>Welcome, {accountData?.display_name}</p>
+					{userData?.is_activated || userData?.is_activated == null
+						? ""
+						: "Your account is not activated yet. Please contact the admin to request for activation."}
 				</div>
+				<CreateLoanProduct userId={userData?.id} />
 			</main>
 		</>
 	);

@@ -1,5 +1,5 @@
 import { FetchOneUserResponseType } from "../../types/FetchUserResponseType";
-import BackendUrl from "../../utils/BackendUrlBuilder";
+import BackendApiBuilder from "../../utils/BackendApiBuilder";
 
 export default async function fetchOneUser(
 	userId: number | null
@@ -7,7 +7,7 @@ export default async function fetchOneUser(
 	try {
 		if (!userId) return null;
 
-		const response = await fetch(`${BackendUrl}/users/${userId}`, {
+		const response = await fetch(`${BackendApiBuilder}/users/${userId}`, {
 			method: "GET",
 			credentials: "include",
 		});

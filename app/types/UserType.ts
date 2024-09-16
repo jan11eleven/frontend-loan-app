@@ -9,7 +9,7 @@ type UserType = {
 	cellphone_number: string;
 	created_on: Date;
 	updated_on: Date;
-	isActivated: boolean;
+	is_activated: boolean;
 };
 
 export default UserType;

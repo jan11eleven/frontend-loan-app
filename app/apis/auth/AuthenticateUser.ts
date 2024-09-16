@@ -1,5 +1,5 @@
-import AuthenticateType from "../types/AuthenticateType";
-import BackendUrl from "./BackendUrlBuilder";
+import AuthenticateType from "../../types/AuthenticateType";
+import BackendUrl from "../../utils/BackendUrlBuilder";
 
 const AuthenticateUser = async (): Promise<AuthenticateType | null> => {
 	try {

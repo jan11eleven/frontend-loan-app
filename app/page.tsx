@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import BackendUrl from "./utils/BackendUrlBuilder";
-import AuthenticateUser from "./utils/AuthenticateUser";
+import AuthenticateUser from "./apis/auth/AuthenticateUser";
 
 export default function Home() {
 	const [isAuthenticated, setIsAuthenticated] = useState<Boolean | null>(null);

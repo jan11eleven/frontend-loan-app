@@ -1,9 +1,9 @@
 import { FetchAllUserResponseType } from "../../types/FetchUserResponseType";
-import BackendUrl from "../../utils/BackendUrlBuilder";
+import BackendApiBuilder from "../../utils/BackendApiBuilder";
 
 export default async function fetchAllUsers(): Promise<FetchAllUserResponseType | null> {
 	try {
-		const response = await fetch(`${BackendUrl}/users`, {
+		const response = await fetch(`${BackendApiBuilder}/users`, {
 			method: "GET",
 			credentials: "include",
 		});
