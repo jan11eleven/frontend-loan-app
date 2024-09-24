@@ -6,6 +6,7 @@ import {
 	loanAmountRegex,
 	termRegex,
 	interestRateRegex,
+	postDateRegex,
 } from "../../utils/Regex";
 import createLoanProduct from "@/app/apis/loanProducts/createLoanProduct";
 import CreateLoanProductType from "@/app/types/CreateLoanProductType";
@@ -16,11 +17,12 @@ export default function CreateLoanProduct({
 	userId: number | undefined;
 }) {
 	const [formData, setFormData] = useState<CreateLoanProductType>({
-		userId: 6,
+		userId: userId,
 		loanProductName: "",
 		loanAmount: "",
 		term: "",
 		interestRate: "",
+		postDate: "",
 	});
 
 	const LoanProductValidationSchema = z.object({
@@ -51,6 +53,12 @@ export default function CreateLoanProduct({
 			}),
 			z.number(),
 		]),
+		postDate: z.union([
+			z.string().regex(postDateRegex, {
+				message: "Post Date must be numbers between 0 and 31",
+			}),
+			z.number(),
+		]),
 	});
 
 	useEffect(() => {
@@ -69,9 +77,11 @@ export default function CreateLoanProduct({
 	const callCreateLoanProductApi = async () => {
 		const transformedData = {
 			...formData,
+			userId: userId,
 			loanAmount: Number(formData.loanAmount),
 			term: Number(formData.term),
 			interestRate: Number(formData.interestRate),
+			postDate: Number(formData.postDate),
 		};
 
 		const result = await createLoanProduct(transformedData);
@@ -87,6 +97,7 @@ export default function CreateLoanProduct({
 			loanAmount: "",
 			term: "",
 			interestRate: "",
+			postDate: "",
 		});
 		return result;
 	};
@@ -137,6 +148,16 @@ export default function CreateLoanProduct({
 						id="interestRate"
 						type="text"
 						value={formData.interestRate}
+						className="border-2"
+						onChange={handleChange}
+					></input>
+				</div>
+				<div>
+					<label htmlFor="postDate">Post Date: (Every nth of month)</label>
+					<input
+						id="postDate"
+						type="text"
+						value={formData.postDate}
 						className="border-2"
 						onChange={handleChange}
 					></input>
