@@ -1,15 +1,15 @@
 import BackendApiBuilder from "../../utils/BackendApiBuilder";
-import CreateLoanProductType from "@/app/types/CreateLoanProductType";
+import CreateLoanType from "@/app/types/CreateLoanType";
 
-async function createLoanProduct(loanProductForm: CreateLoanProductType) {
+async function createLoan(loanForm: CreateLoanType) {
 	try {
-		const response = await fetch(`${BackendApiBuilder}/loanproducts`, {
+		const response = await fetch(`${BackendApiBuilder}/loan`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
 			},
 			credentials: "include",
-			body: JSON.stringify(loanProductForm),
+			body: JSON.stringify(loanForm),
 		});
 
 		if (!response.ok) {
@@ -26,4 +26,4 @@ async function createLoanProduct(loanProductForm: CreateLoanProductType) {
 	}
 }
 
-export default createLoanProduct;
+export default createLoan;

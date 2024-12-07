@@ -10,6 +10,7 @@ import BackendUrl from "../utils/BackendUrlBuilder";
 import UserType from "../types/UserType";
 import { FetchOneUserResponseType } from "../types/FetchUserResponseType";
 import CreateLoanProduct from "./create-loan-product/CreateLoanProduct";
+import CreateLoanee from "./create-loanee/CreateLoanee";
 
 export default function Dashboard() {
 	const [isAuthenticated, setIsAuthenticated] = useState<Boolean | null>(null);
@@ -88,17 +89,20 @@ export default function Dashboard() {
 	return (
 		<>
 			<main>
-				<div className="flex justify-between w-screen bg-red-100 p-4">
+				<div className="flex justify-between bg-red-100 p-4">
 					<p>Dashboard Page</p>
 					<button onClick={logoutButtonHandler}>Logout</button>
 				</div>
 				<div className="p-4">
-					<p>Welcome, {accountData?.display_name}</p>
-					{userData?.is_activated || userData?.is_activated == null
-						? ""
-						: "Your account is not activated yet. Please contact the admin to request for activation."}
+					<h1 className="text-xl">Welcome, {accountData?.display_name}</h1>
+					{userData?.is_activated ? (
+						<div>
+							<CreateLoanProduct userId={userData?.id} />
+						</div>
+					) : (
+						"Your account is not activated yet. Please contact the admin to request for activation."
+					)}
 				</div>
-				<CreateLoanProduct userId={userData?.id} />
 			</main>
 		</>
 	);

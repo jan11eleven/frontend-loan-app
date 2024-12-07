@@ -8,31 +8,74 @@ import {
 	interestRateRegex,
 	postDateRegex,
 } from "../../utils/Regex";
-import createLoanProduct from "@/app/apis/loanProducts/createLoanProduct";
-import CreateLoanProductType from "@/app/types/CreateLoanProductType";
+import createLoan from "@/app/apis/loan/createLoan";
+import CreateLoanType from "@/app/types/CreateLoanType";
+import LoanStatusEnum from "@/app/types/LoanStatusEnum";
+import fetchLoaneeByUserId from "@/app/apis/loanee/fetchLoaneeByUserId";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+
+import { Button } from "@/components/ui/button";
+import {
+	Form,
+	FormControl,
+	FormDescription,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { format } from "date-fns";
+import { Calendar as CalendarIcon } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
+
+import { useToast } from "@/components/hooks/use-toast";
+
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
+import CreateLoanee from "../create-loanee/CreateLoanee";
+import { DialogClose } from "@radix-ui/react-dialog";
+
+type LoaneeDetailsType = {
+	id: number;
+	first_name: string;
+	last_name: string;
+}[];
 
 export default function CreateLoanProduct({
 	userId,
 }: {
 	userId: number | undefined;
 }) {
-	const [formData, setFormData] = useState<CreateLoanProductType>({
-		userId: userId,
-		loanProductName: "",
-		loanAmount: "",
-		term: "",
-		interestRate: "",
-		postDate: "",
-	});
+	const { toast } = useToast();
+
+	const [loaneeDetails, setLoaneeDetails] = useState<LoaneeDetailsType | null>(
+		null
+	);
 
 	const LoanProductValidationSchema = z.object({
-		loanProductName: z
-			.string({
-				required_error: "Loan Product Name is required",
-				invalid_type_error: "Loan Product Name must be a string",
-			})
-			.max(62, { message: "Must be 80 or fewer characters long" })
-			.min(8, { message: "Must be 8 or more characters long" }),
+		loaneeId: z.string(),
 		loanAmount: z.union([
 			z.string().regex(loanAmountRegex, {
 				message:
@@ -53,119 +96,162 @@ export default function CreateLoanProduct({
 			}),
 			z.number(),
 		]),
-		postDate: z.union([
-			z.string().regex(postDateRegex, {
-				message: "Post Date must be numbers between 0 and 31",
-			}),
-			z.number(),
-		]),
+		loanStatus: z.nativeEnum(LoanStatusEnum),
 	});
 
-	useEffect(() => {
-		LoanProductValidationSchema.safeParse(formData);
-	}, [formData]);
-
-	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const { id, value } = e.target;
-
-		setFormData({
-			...formData,
-			[id]: value,
-		});
-	};
-
-	const callCreateLoanProductApi = async () => {
-		const transformedData = {
-			...formData,
-			userId: userId,
-			loanAmount: Number(formData.loanAmount),
-			term: Number(formData.term),
-			interestRate: Number(formData.interestRate),
-			postDate: Number(formData.postDate),
-		};
-
-		const result = await createLoanProduct(transformedData);
-
-		if (result.error) {
-			// catch error message and display to interface
-			return result;
-		}
-
-		setFormData({
-			...formData,
-			loanProductName: "",
+	const loanProductForm = useForm<z.infer<typeof LoanProductValidationSchema>>({
+		resolver: zodResolver(LoanProductValidationSchema),
+		defaultValues: {
+			loaneeId: "",
 			loanAmount: "",
 			term: "",
 			interestRate: "",
-			postDate: "",
+			loanStatus: LoanStatusEnum.PENDING,
+		},
+	});
+
+	async function OnSubmit(values: z.infer<typeof LoanProductValidationSchema>) {
+		const transformedData = {
+			...values,
+			userId: userId,
+			loaneeId: Number(values.loaneeId),
+			loanAmount: Number(values.loanAmount),
+			interestRate: Number(values.interestRate),
+			term: Number(values.term),
+			startDate: undefined,
+			endDate: undefined,
+		};
+
+		const result = await createLoan(transformedData);
+
+		if (result.error) {
+			toast({
+				variant: "destructive",
+				description: "Error encountered: " + result.error,
+			});
+
+			return result;
+		}
+
+		toast({
+			description: "Loan Successfully submitted.",
 		});
+		loanProductForm.reset();
+
 		return result;
-	};
+	}
 
-	const handleOnSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-		e.preventDefault();
+	// fetch loanee details
+	useEffect(() => {
+		const callFetchLoaneeDetailsApi = async () => {
+			const result = await fetchLoaneeByUserId(
+				userId,
+				"?fields=id,first_name,last_name"
+			);
 
-		callCreateLoanProductApi();
-	};
+			console.log(result);
+
+			if (result.error) {
+				// catch error message and display to interface
+				return result;
+			}
+
+			setLoaneeDetails(result.loaneeData);
+		};
+
+		callFetchLoaneeDetailsApi();
+	}, []);
 
 	return (
 		<div>
-			<form action="" onSubmit={handleOnSubmit}>
-				<h1>Create Loan Product Page</h1>
-				<div>
-					<label htmlFor="loanProductName">Loan Product Name: </label>
-					<input
-						id="loanProductName"
-						type="text"
-						value={formData.loanProductName}
-						className="border-2"
-						onChange={handleChange}
-					></input>
-				</div>
-				<div>
-					<label htmlFor="loanAmount">Loan Amount: </label>
-					<input
-						id="loanAmount"
-						type="text"
-						value={formData.loanAmount}
-						className="border-2"
-						onChange={handleChange}
-					></input>
-				</div>
-				<div>
-					<label htmlFor="term">Term: (Months)</label>
-					<input
-						id="term"
-						type="text"
-						value={formData.term}
-						className="border-2"
-						onChange={handleChange}
-					></input>
-				</div>
-				<div>
-					<label htmlFor="interestRate">Interest Rate: </label>
-					<input
-						id="interestRate"
-						type="text"
-						value={formData.interestRate}
-						className="border-2"
-						onChange={handleChange}
-					></input>
-				</div>
-				<div>
-					<label htmlFor="postDate">Post Date: (Every nth of month)</label>
-					<input
-						id="postDate"
-						type="text"
-						value={formData.postDate}
-						className="border-2"
-						onChange={handleChange}
-					></input>
-				</div>
-				<button type="submit" className="border-2 p-1">
-					Submit
-				</button>
-			</form>
+			<Form {...loanProductForm}>
+				<form
+					onSubmit={loanProductForm.handleSubmit(OnSubmit)}
+					className="space-y-8"
+				>
+					<FormField
+						control={loanProductForm.control}
+						name="loaneeId"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Loanee</FormLabel>
+								<Select onValueChange={field.onChange}>
+									<FormControl>
+										<SelectTrigger>
+											<SelectValue placeholder="Select an existing user here" />
+										</SelectTrigger>
+									</FormControl>
+									<SelectContent>
+										{loaneeDetails?.map((loanee) => (
+											<SelectItem key={loanee.id} value={loanee.id.toString()}>
+												{loanee.first_name} {loanee.last_name}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+								<FormMessage />
+								<Dialog>
+									<DialogTrigger className="border-2 border- p-2 rounded-md">
+										Create Loanee
+									</DialogTrigger>
+									<DialogContent className="sm:max-w-[425px] md:max-w-[725px] max-h-[80vh] overflow-y-auto">
+										<DialogHeader>
+											<DialogTitle>Create Loanee</DialogTitle>
+											<DialogDescription>
+												Create your new Loanee here.
+											</DialogDescription>
+										</DialogHeader>
+										<CreateLoanee userId={userId} />
+										<DialogClose className="border-2 text-md p-1 rounded-md">
+											Close
+										</DialogClose>
+									</DialogContent>
+								</Dialog>
+							</FormItem>
+						)}
+					/>
+					<FormField
+						control={loanProductForm.control}
+						name="loanAmount"
+						render={({ field }: any) => (
+							<FormItem>
+								<FormLabel>Loan Amount</FormLabel>
+								<FormControl>
+									<Input placeholder="XXX,XXX,XXX.XX" {...field} />
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+					<FormField
+						control={loanProductForm.control}
+						name="interestRate"
+						render={({ field }: any) => (
+							<FormItem>
+								<FormLabel>Interest Rate</FormLabel>
+								<FormControl>
+									<Input {...field} />
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+					<FormField
+						control={loanProductForm.control}
+						name="term"
+						render={({ field }: any) => (
+							<FormItem>
+								<FormLabel>Term (Months)</FormLabel>
+								<FormControl>
+									<Input {...field} />
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+					<Button type="submit">Submit</Button>
+				</form>
+			</Form>
 		</div>
 	);
 }
