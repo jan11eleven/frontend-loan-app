@@ -26,7 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/components/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "@/components/hooks/use-toast";
 import {

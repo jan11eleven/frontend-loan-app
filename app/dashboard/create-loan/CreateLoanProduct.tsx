@@ -34,9 +34,9 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { RotateCw } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/components/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import {
 	Popover,
@@ -142,28 +142,57 @@ export default function CreateLoanProduct({
 	}
 
 	// fetch loanee details
+
+	async function callFetchLoaneeDetailsApi() {
+		const result = await fetchLoaneeByUserId(
+			userId,
+			"?fields=id,first_name,last_name"
+		);
+
+		console.log(result);
+
+		if (result.error) {
+			// catch error message and display to interface
+			toast({
+				variant: "destructive",
+				description: "Error encountered: " + result.error,
+			});
+
+			return result;
+		}
+
+		setLoaneeDetails(result.loaneeData);
+
+		toast({
+			description: "Loanees has been refreshed.",
+		});
+	}
+
+	function handleRefreshLoaneesOnClick() {
+		callFetchLoaneeDetailsApi();
+	}
+
 	useEffect(() => {
-		const callFetchLoaneeDetailsApi = async () => {
-			const result = await fetchLoaneeByUserId(
-				userId,
-				"?fields=id,first_name,last_name"
-			);
-
-			console.log(result);
-
-			if (result.error) {
-				// catch error message and display to interface
-				return result;
-			}
-
-			setLoaneeDetails(result.loaneeData);
-		};
-
 		callFetchLoaneeDetailsApi();
 	}, []);
 
 	return (
-		<div>
+		<div className="pt-4 mx-4">
+			<Dialog>
+				<DialogTrigger className="border-2 border- py-1 px-2 rounded-md">
+					Create Loanee
+				</DialogTrigger>
+				<DialogContent className="sm:max-w-[425px] md:max-w-[725px] max-h-[80vh] overflow-y-auto">
+					<DialogHeader>
+						<DialogTitle>Create Loanee</DialogTitle>
+						<DialogDescription>Create your new Loanee here.</DialogDescription>
+					</DialogHeader>
+					<CreateLoanee userId={userId} />
+					<DialogClose className="border-2 text-md p-1 rounded-md">
+						Close
+					</DialogClose>
+				</DialogContent>
+			</Dialog>
 			<Form {...loanProductForm}>
 				<form
 					onSubmit={loanProductForm.handleSubmit(OnSubmit)}
@@ -172,7 +201,7 @@ export default function CreateLoanProduct({
 					<FormField
 						control={loanProductForm.control}
 						name="loaneeId"
-						render={({ field }) => (
+						render={({ field }: any) => (
 							<FormItem>
 								<FormLabel>Loanee</FormLabel>
 								<Select onValueChange={field.onChange}>
@@ -190,23 +219,15 @@ export default function CreateLoanProduct({
 									</SelectContent>
 								</Select>
 								<FormMessage />
-								<Dialog>
-									<DialogTrigger className="border-2 border- p-2 rounded-md">
-										Create Loanee
-									</DialogTrigger>
-									<DialogContent className="sm:max-w-[425px] md:max-w-[725px] max-h-[80vh] overflow-y-auto">
-										<DialogHeader>
-											<DialogTitle>Create Loanee</DialogTitle>
-											<DialogDescription>
-												Create your new Loanee here.
-											</DialogDescription>
-										</DialogHeader>
-										<CreateLoanee userId={userId} />
-										<DialogClose className="border-2 text-md p-1 rounded-md">
-											Close
-										</DialogClose>
-									</DialogContent>
-								</Dialog>
+
+								<Button
+									variant="outline"
+									size="icon"
+									type="button"
+									onClick={handleRefreshLoaneesOnClick}
+								>
+									<RotateCw />
+								</Button>
 							</FormItem>
 						)}
 					/>
