@@ -113,16 +113,12 @@ export default function Layout({
 		<SidebarProvider>
 			<AppSidebar />
 			<SidebarInset>
-				<header className="flex justify-between sticky top-0 bg-background h-16 shrink-0 items-center gap-2 border-b px-4">
-					<div
-						className="flex
-					"
-					>
+				<header className="flex justify-between sticky z-10 top-0 bg-background h-16 shrink-0 items-center gap-2 border-b px-4">
+					<div className="flex">
 						<SidebarTrigger />
 						<h1 className="text-xl ml-4">{accountData?.display_name}</h1>
 					</div>
 					<button onClick={logoutButtonHandler} className="flex">
-						{" "}
 						<LogOut className="mr-2" />
 						Logout
 					</button>
@@ -131,9 +127,7 @@ export default function Layout({
 				<div className="flex flex-1 flex-col gap-4">
 					{userData?.is_activated ? (
 						<LayoutContext.Provider value={{ accountData }}>
-							<div className="h-full flex justify-center items-center">
-								{children}
-							</div>
+							<div className="h-full flex justify-center py-8">{children}</div>
 						</LayoutContext.Provider>
 					) : (
 						"Your account is not activated yet. Please contact the admin to request for activation."

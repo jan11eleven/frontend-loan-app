@@ -13,14 +13,14 @@ async function createLoan(loanForm: CreateLoanType) {
 		});
 
 		if (!response.ok) {
-			throw new Error(`Create Loan Product Error! Status: ${response.status}`);
+			throw new Error(`Create Loan Error! Status: ${response.status}`);
 		}
 
 		const result = await response.json();
 
 		return result;
 	} catch (error) {
-		console.error("Create Loan Product API Error", error);
+		console.error("Create Loan API Error", error);
 
 		return error;
 	}
