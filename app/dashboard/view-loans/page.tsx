@@ -29,7 +29,18 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+	Dialog,
+	DialogClose,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
 
+import { useToast } from "@/components/hooks/use-toast";
 // React Imports
 import { useEffect, useState } from "react";
 import React, { useContext } from "react";
@@ -41,6 +52,8 @@ import GetLoansType from "@/app/types/GetLoansType";
 // functions imports
 import getLoansByUserId from "@/app/apis/loan/getLoansByUserId";
 import searchLoansByUserId from "@/app/apis/loan/searchLoansByUserId";
+import approveLoan from "@/app/apis/loan/approveLoan";
+import rejectLoan from "@/app/apis/loan/rejectLoan";
 
 // utils imports
 import { format } from "date-fns";
@@ -52,16 +65,35 @@ import {
 	Pen,
 	Ellipsis,
 	EllipsisIcon,
+	Loader2,
 } from "lucide-react";
+// Enums
+import LoanStatusEnum from "@/app/types/LoanStatusEnum";
+import { Action } from "@radix-ui/react-toast";
 
+enum ActionDialogEnum {
+	APPROVE = "APPROVE",
+	REJECT = "REJECT",
+	NOACTION = "NOACTION",
+}
+// TODO: create reject endpoint
 export default function ViewLoans() {
 	const [loansData, setLoansData] = useState<GetLoansType[]>([]);
 	const [totalLoanDataRows, setTotalLoanDataRows] = useState(0);
 	const [page, setPage] = useState(1);
 	const [searchText, setSearchText] = useState("");
+	const [actionDialog, setActionDialog] = useState<ActionDialogEnum>(
+		ActionDialogEnum.NOACTION
+	);
+	const [selectedAction, setSelectedAction] = useState<string | undefined>(
+		undefined
+	);
+	const [loanActionLoading, setLoanActionLoading] = useState<Boolean>(false);
 
 	const perPage = 10;
 	const { accountData } = useLayout();
+
+	const { toast } = useToast();
 
 	const callGetLoansApi = async () => {
 		try {
@@ -73,16 +105,15 @@ export default function ViewLoans() {
 
 			if (fetchLoansApiResult.error) {
 				console.error(fetchLoansApiResult.error);
+			} else {
+				setLoansData(fetchLoansApiResult.loanData);
+				setTotalLoanDataRows(fetchLoansApiResult.totalLoanDataRows);
 			}
-
-			setLoansData(fetchLoansApiResult.loanData);
-			setTotalLoanDataRows(fetchLoansApiResult.totalLoanDataRows);
 		} catch (error) {}
 	};
 
 	const callSearchLoansApi = async () => {
 		try {
-			searchLoansByUserId;
 			const fetchLoansApiResult = await searchLoansByUserId(
 				page,
 				perPage,
@@ -90,16 +121,64 @@ export default function ViewLoans() {
 				searchText
 			);
 
-			console.log(fetchLoansApiResult);
-
 			if (fetchLoansApiResult.error) {
 				console.error(fetchLoansApiResult.error);
-			}
+			} else {
+				setLoansData(fetchLoansApiResult.loanData);
 
-			setLoansData(fetchLoansApiResult.loanData);
-			setTotalLoanDataRows(fetchLoansApiResult.totalLoanDataRows);
+				if (fetchLoansApiResult.totalLoanDataRows) {
+					setTotalLoanDataRows(fetchLoansApiResult.totalLoanDataRows);
+				} else {
+					setTotalLoanDataRows(0);
+				}
+			}
 		} catch (error) {}
 	};
+
+	async function callApproveLoanApi(loan: GetLoansType) {
+		try {
+			setLoanActionLoading(true);
+			const approveLoanResult = await approveLoan(loan);
+
+			if (approveLoanResult.error) {
+				console.error(approveLoanResult.error);
+
+				return approveLoanResult.error;
+			}
+
+			toast({
+				description: `Loan with a Reference ID of ${loan.loan_reference_id} has been successfully Approved.`,
+			});
+
+			callGetLoansApi();
+
+			setLoanActionLoading(false);
+		} catch (error) {
+			console.error(error);
+		}
+	}
+
+	async function callRejectLoanApi(loan: GetLoansType) {
+		try {
+			setLoanActionLoading(true);
+			const rejectLoanResult = await rejectLoan(loan);
+
+			if (rejectLoanResult.error) {
+				console.error(rejectLoanResult.error);
+
+				return rejectLoanResult.error;
+			}
+
+			toast({
+				description: `Loan with a Reference ID of ${loan.loan_reference_id} has been successfully Rejected.`,
+			});
+
+			callGetLoansApi();
+			setLoanActionLoading(false);
+		} catch (error) {
+			console.error(error);
+		}
+	}
 
 	const hidePaginationItemClassName =
 		perPage >= totalLoanDataRows ? "hidden" : "";
@@ -109,8 +188,14 @@ export default function ViewLoans() {
 	}, []);
 
 	useEffect(() => {
-		callGetLoansApi();
+		callSearchLoansApi();
 	}, [page]);
+
+	useEffect(() => {
+		if (page > Math.ceil(totalLoanDataRows / perPage)) {
+			setPage(1);
+		}
+	}, [totalLoanDataRows]);
 
 	function handleSearchInputOnChange(e: React.ChangeEvent<HTMLInputElement>) {
 		setSearchText(e.target.value);
@@ -128,9 +213,16 @@ export default function ViewLoans() {
 		}
 	}
 
-	useEffect(() => {
-		console.log(searchText);
-	}, [searchText]);
+	async function handleLoanActionOnClick(
+		loan: GetLoansType,
+		action: ActionDialogEnum
+	) {
+		if (action == ActionDialogEnum.APPROVE) {
+			callApproveLoanApi(loan);
+		} else {
+			callRejectLoanApi(loan);
+		}
+	}
 
 	return (
 		<main className="py-8 mx-16">
@@ -148,6 +240,16 @@ export default function ViewLoans() {
 
 				<div className="flex-1"></div>
 				<div className="flex-1"></div>
+			</div>
+			<div
+				className={`flex justify-center items-center my-8 ${
+					loanActionLoading ? "" : "hidden"
+				}`}
+			>
+				<Loader2 className="mr-1 h-4 w-4 animate-spin" />
+				{selectedAction == "APPROVE"
+					? "Creating Installment..."
+					: "Rejecting Installment..."}
 			</div>
 			<div className="border-2 rounded-lg mt-4">
 				<Table>
@@ -181,27 +283,89 @@ export default function ViewLoans() {
 										<Button variant="outline">
 											<ThumbsDown className="text-red-600" />
 										</Button> */}
-										<DropdownMenu>
-											<DropdownMenuTrigger>
-												<EllipsisIcon />
-											</DropdownMenuTrigger>
-											<DropdownMenuContent>
-												<DropdownMenuLabel>
-													{loan.loan_reference_id}
-												</DropdownMenuLabel>
-												<DropdownMenuSeparator />
-												<DropdownMenuItem>
-													<Pen /> Edit
-												</DropdownMenuItem>
-												<DropdownMenuItem>
-													<ThumbsUp /> Approve
-												</DropdownMenuItem>
-												<DropdownMenuItem>
-													<ThumbsDown />
-													Reject
-												</DropdownMenuItem>
-											</DropdownMenuContent>
-										</DropdownMenu>
+
+										<Dialog>
+											<DropdownMenu>
+												<DropdownMenuTrigger>
+													<EllipsisIcon />
+												</DropdownMenuTrigger>
+												<DropdownMenuContent>
+													<DropdownMenuLabel>
+														{loan.loan_reference_id}
+													</DropdownMenuLabel>
+													<DropdownMenuSeparator />
+													<DropdownMenuItem>
+														<Pen /> View/Edit
+													</DropdownMenuItem>
+
+													<div className="flex flex-col">
+														<DialogTrigger
+															hidden={
+																loan.loan_status === LoanStatusEnum.ACTIVE ||
+																loan.loan_status === LoanStatusEnum.REJECTED
+																	? true
+																	: false
+															}
+														>
+															<DropdownMenuItem
+																onClick={() => {
+																	setSelectedAction("APPROVE");
+																}}
+															>
+																<ThumbsUp /> Approve
+															</DropdownMenuItem>
+														</DialogTrigger>
+														<DialogTrigger
+															hidden={
+																loan.loan_status === LoanStatusEnum.ACTIVE ||
+																loan.loan_status === LoanStatusEnum.REJECTED
+																	? true
+																	: false
+															}
+														>
+															<DropdownMenuItem
+																onClick={() => {
+																	setSelectedAction("REJECT");
+																}}
+															>
+																<ThumbsDown /> Reject
+															</DropdownMenuItem>
+														</DialogTrigger>
+													</div>
+												</DropdownMenuContent>
+											</DropdownMenu>
+											<DialogContent>
+												<DialogHeader>
+													<DialogTitle>{loan.loan_reference_id}</DialogTitle>
+													<DialogDescription>
+														Are you sure you want to{" "}
+														{selectedAction == "APPROVE" ? "Approve" : "Reject"}
+														?
+													</DialogDescription>
+												</DialogHeader>
+												<DialogFooter>
+													<DialogClose asChild>
+														<Button
+															onClick={() => {
+																handleLoanActionOnClick(
+																	loan,
+																	selectedAction == "APPROVE"
+																		? ActionDialogEnum.APPROVE
+																		: ActionDialogEnum.REJECT
+																);
+															}}
+														>
+															Yes
+														</Button>
+													</DialogClose>
+													<DialogClose asChild>
+														<Button type="button" variant="secondary">
+															No
+														</Button>
+													</DialogClose>
+												</DialogFooter>
+											</DialogContent>
+										</Dialog>
 									</TableCell>
 									<TableCell className="min-w-[200px]">
 										{loan.loan_reference_id}
@@ -226,12 +390,12 @@ export default function ViewLoans() {
 									</TableCell>
 									<TableCell className="text-center">
 										{loan.start_date
-											? format(new Date(loan.start_date), "MMMM dd, yyyy h:mma")
+											? format(new Date(loan.start_date), "MMMM dd, yyyy")
 											: "N/A"}
 									</TableCell>
 									<TableCell className="text-center">
 										{loan.end_date
-											? format(new Date(loan.end_date), "MMMM dd, yyyy h:mma")
+											? format(new Date(loan.end_date), "MMMM dd, yyyy")
 											: "N/A"}
 									</TableCell>
 									<TableCell className="text-center">

@@ -6,10 +6,8 @@ import {
 	loanAmountRegex,
 	termRegex,
 	interestRateRegex,
-	postDateRegex,
 } from "../../utils/Regex";
 import createLoan from "@/app/apis/loan/createLoan";
-import CreateLoanType from "@/app/types/CreateLoanType";
 import LoanStatusEnum from "@/app/types/LoanStatusEnum";
 import fetchLoaneeByUserId from "@/app/apis/loanee/fetchLoaneeByUserId";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import {
 	Form,
 	FormControl,
-	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -33,29 +30,18 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { format } from "date-fns";
 import { RotateCw } from "lucide-react";
-
-import { cn } from "@/components/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@/components/ui/popover";
-
 import { useToast } from "@/components/hooks/use-toast";
-
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
+	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import CreateLoanee from "../create-loanee/CreateLoanee";
-import { DialogClose } from "@radix-ui/react-dialog";
 import { useLayout } from "../layout";
 
 type LoaneeDetailsType = {
@@ -65,11 +51,10 @@ type LoaneeDetailsType = {
 }[];
 
 export default function CreateLoanProduct() {
+	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const { accountData } = useLayout();
-
 	const userId: number | undefined = accountData?.user_id;
 	const { toast } = useToast();
-
 	const [loaneeDetails, setLoaneeDetails] = useState<LoaneeDetailsType | null>(
 		null
 	);
@@ -118,8 +103,6 @@ export default function CreateLoanProduct() {
 			loanAmount: Number(values.loanAmount),
 			interestRate: Number(values.interestRate),
 			term: Number(values.term),
-			startDate: undefined,
-			endDate: undefined,
 		};
 
 		const result = await createLoan(transformedData);
@@ -129,19 +112,15 @@ export default function CreateLoanProduct() {
 				variant: "destructive",
 				description: "Error encountered: " + result.error,
 			});
-
 			return result;
 		}
 
 		toast({
-			description: "Loan Successfully submitted.",
+			description: "Loan successfully submitted.",
 		});
 		loanProductForm.reset();
-
 		return result;
 	}
-
-	// fetch loanee details
 
 	async function callFetchLoaneeDetailsApi() {
 		const result = await fetchLoaneeByUserId(
@@ -149,27 +128,18 @@ export default function CreateLoanProduct() {
 			"?fields=id,first_name,last_name"
 		);
 
-		console.log(result);
-
 		if (result.error) {
-			// catch error message and display to interface
 			toast({
 				variant: "destructive",
 				description: "Error encountered: " + result.error,
 			});
-
 			return result;
 		}
 
 		setLoaneeDetails(result.loaneeData);
-
 		toast({
-			description: "Loanees has been refreshed.",
+			description: "Loanees have been refreshed.",
 		});
-	}
-
-	function handleRefreshLoaneesOnClick() {
-		callFetchLoaneeDetailsApi();
 	}
 
 	useEffect(() => {
@@ -179,8 +149,9 @@ export default function CreateLoanProduct() {
 	return (
 		<div className="py-8 px-16 border-2 rounded-lg w-5/6">
 			<h1 className="font-bold text-2xl mb-8">Create Loan</h1>
+
 			<Dialog>
-				<DialogTrigger className="border-2 border- py-1 px-2 rounded-md">
+				<DialogTrigger className="border-2 py-1 px-2 rounded-md mb-4">
 					Create Loanee
 				</DialogTrigger>
 				<DialogContent className="sm:max-w-[425px] md:max-w-[725px] max-h-[80vh] overflow-y-auto">
@@ -189,20 +160,22 @@ export default function CreateLoanProduct() {
 						<DialogDescription>Create your new Loanee here.</DialogDescription>
 					</DialogHeader>
 					<CreateLoanee userId={userId} />
-					<DialogClose className="border-2 text-md p-1 rounded-md">
-						Close
-					</DialogClose>
 				</DialogContent>
 			</Dialog>
+
+			{/* Loan Product Form */}
 			<Form {...loanProductForm}>
 				<form
-					onSubmit={loanProductForm.handleSubmit(OnSubmit)}
+					onSubmit={(e) => {
+						e.preventDefault(); // Prevent default form submission
+						setIsDialogOpen(true); // Open the confirmation dialog
+					}}
 					className="space-y-8"
 				>
 					<FormField
 						control={loanProductForm.control}
 						name="loaneeId"
-						render={({ field }: any) => (
+						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Loanee</FormLabel>
 								<Select onValueChange={field.onChange}>
@@ -220,12 +193,11 @@ export default function CreateLoanProduct() {
 									</SelectContent>
 								</Select>
 								<FormMessage />
-
 								<Button
 									variant="outline"
 									size="icon"
 									type="button"
-									onClick={handleRefreshLoaneesOnClick}
+									onClick={callFetchLoaneeDetailsApi}
 								>
 									<RotateCw />
 								</Button>
@@ -235,7 +207,7 @@ export default function CreateLoanProduct() {
 					<FormField
 						control={loanProductForm.control}
 						name="loanAmount"
-						render={({ field }: any) => (
+						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Loan Amount</FormLabel>
 								<FormControl>
@@ -248,7 +220,7 @@ export default function CreateLoanProduct() {
 					<FormField
 						control={loanProductForm.control}
 						name="interestRate"
-						render={({ field }: any) => (
+						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Interest Rate</FormLabel>
 								<FormControl>
@@ -261,7 +233,7 @@ export default function CreateLoanProduct() {
 					<FormField
 						control={loanProductForm.control}
 						name="term"
-						render={({ field }: any) => (
+						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Term (Months)</FormLabel>
 								<FormControl>
@@ -274,6 +246,32 @@ export default function CreateLoanProduct() {
 					<Button type="submit">Submit</Button>
 				</form>
 			</Form>
+
+			{/* Confirmation Dialog */}
+			<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+				<DialogContent className="sm:max-w-[425px] md:max-w-[725px] max-h-[80vh] overflow-y-auto">
+					<DialogHeader>
+						<DialogTitle>Confirm Submission</DialogTitle>
+						<DialogDescription>
+							Are you sure you want to submit?
+						</DialogDescription>
+					</DialogHeader>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+							Cancel
+						</Button>
+						<Button
+							type="button"
+							onClick={() => {
+								loanProductForm.handleSubmit(OnSubmit)();
+								setIsDialogOpen(false);
+							}}
+						>
+							Confirm
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

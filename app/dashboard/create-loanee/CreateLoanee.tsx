@@ -105,7 +105,7 @@ export default function CreateLoanee({
 		}
 
 		toast({
-			description: "Loan Successfully submitted.",
+			description: "New Loanee successfully created.",
 		});
 
 		loaneeForm.reset();

@@ -16,15 +16,17 @@ import {
 	SidebarInset,
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/app/dashboard/app-sidebar";
-import { LogOut } from "lucide-react";
+import { LogOut, Loader2 } from "lucide-react";
 import React, { createContext, useContext } from "react";
 
 interface LayoutContextType {
 	accountData: GoogleAccountType | null;
+	isAuthenticated: Boolean | null;
 }
 
 const defaultLayoutContext: LayoutContextType = {
 	accountData: null,
+	isAuthenticated: null,
 };
 
 const LayoutContext = createContext<LayoutContextType>(defaultLayoutContext);
@@ -69,15 +71,11 @@ export default function Layout({
 
 	useEffect(() => {
 		const checkAuth = async () => {
-			const result = await AuthenticateUser();
+			if (isAuthenticated !== null) return;
 
-			if (result) {
-				setIsAuthenticated(result.isAuthenticated);
-				setAccountData(result.userData);
-			} else {
-				setIsAuthenticated(false);
-				setAccountData(null);
-			}
+			const result = await AuthenticateUser();
+			setIsAuthenticated(result?.isAuthenticated ?? false);
+			setAccountData(result?.userData ?? null);
 		};
 
 		checkAuth();
@@ -85,6 +83,7 @@ export default function Layout({
 
 	useEffect(() => {
 		const getOneUser = async () => {
+			console.log(accountData);
 			if (!accountData) return;
 
 			const result: FetchOneUserResponseType | null = await fetchOneUser(
@@ -103,10 +102,14 @@ export default function Layout({
 		if (isAuthenticated === false) {
 			router.push("/"); // Redirect to the homepage if not authenticated
 		}
-	}, [isAuthenticated, router]);
+	}, [isAuthenticated]);
 
 	if (isAuthenticated === null) {
-		return <>Loading...</>;
+		return (
+			<div className="flex h-screen w-screen justify-center items-center text-2xl">
+				<Loader2 className="mr-1 h-6 w-6 animate-spin" /> Please wait
+			</div>
+		);
 	}
 
 	return (
@@ -126,8 +129,14 @@ export default function Layout({
 
 				<div className="flex flex-1 flex-col gap-4">
 					{userData?.is_activated ? (
-						<LayoutContext.Provider value={{ accountData }}>
-							<div className="h-full flex justify-center py-8">{children}</div>
+						<LayoutContext.Provider value={{ accountData, isAuthenticated }}>
+							{isAuthenticated === null ? (
+								<>Loading...</>
+							) : (
+								<div className="h-full flex justify-center py-8">
+									{children}
+								</div>
+							)}
 						</LayoutContext.Provider>
 					) : (
 						"Your account is not activated yet. Please contact the admin to request for activation."

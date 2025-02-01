@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import BackendUrl from "./utils/BackendUrlBuilder";
 import AuthenticateUser from "./apis/auth/AuthenticateUser";
-
+import { Loader2 } from "lucide-react";
 export default function Home() {
 	const [isAuthenticated, setIsAuthenticated] = useState<Boolean | null>(null);
 	const router = useRouter();
@@ -31,10 +31,14 @@ export default function Home() {
 		if (isAuthenticated === true) {
 			router.push("/dashboard"); // Redirect to the dashboard if authenticated
 		}
-	}, [isAuthenticated, router]);
+	}, [isAuthenticated]);
 
 	if (isAuthenticated === null) {
-		return <>Loading...</>;
+		return (
+			<div className="flex h-screen w-screen justify-center items-center text-2xl">
+				<Loader2 className="mr-1 h-6 w-6 animate-spin" /> Please wait
+			</div>
+		);
 	}
 
 	return (

@@ -7,8 +7,8 @@ type CreateLoanType = {
 	interestRate: number | string;
 	term: number | string;
 	loanStatus: LoanStatusEnum;
-	startDate: string | undefined;
-	endDate: string | undefined;
+	startDate?: string | undefined;
+	endDate?: string | undefined;
 };
 
 export default CreateLoanType;
